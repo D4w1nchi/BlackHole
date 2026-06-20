@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Gravitational Vortex</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+            cursor: pointer;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="c"></canvas>
+
+    <script>
+
+        const c = document.getElementById("c");
+        const ctx = c.getContext("2d");
+
+        c.width = innerWidth;
+        c.height = innerHeight;
+
+        // ---------- STARS ----------
+        const stars = [];
+        const COUNT = 1800;
+
+        for (let i = 0; i < COUNT; i++) {
+            stars.push({
+                x: Math.random() * c.width,
+                y: Math.random() * c.height,
+                vx: 0,
+                vy: 0,
+                size: Math.random() * 1.3 + 0.2,
+                alpha: 0.5 + Math.random() * 0.5
+            });
+        }
+
+        // ---------- VORTEX ----------
+        let bh = null;
+        let active = false;
+        let fade = 1;
+
+        c.addEventListener("click", (e) => {
+
+            if (active) return;
+
+            active = true;
+            fade = 1;
+
+            bh = {
+                x: e.clientX,
+                y: e.clientY,
+                pull: 0
+            };
+        });
+
+        function draw() {
+
+            // cleaner space (less messy trails)
+            ctx.fillStyle = "rgba(0,0,0,0.35)";
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            for (let s of stars) {
+
+                if (active) {
+
+                    let dx = bh.x - s.x;
+                    let dy = bh.y - s.y;
+
+                    let dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+
+                    // stronger but readable gravity
+                    let force = (bh.pull + 40) / (dist * dist);
+
+                    // clear swirl (this fixes your "not visible" issue)
+                    let angle = Math.atan2(dy, dx);
+
+                    let swirlX = -dy / dist;
+                    let swirlY = dx / dist;
+
+                    s.vx += dx * force * 0.01 + swirlX * force * 0.8;
+                    s.vy += dy * force * 0.01 + swirlY * force * 0.8;
+
+                    s.x += s.vx;
+                    s.y += s.vy;
+
+                    s.vx *= 0.96;
+                    s.vy *= 0.96;
+
+                    s.alpha *= 0.995;
+                }
+
+                ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // ---------- SMALL REALISTIC VORTEX CORE ----------
+            if (active) {
+
+                bh.pull += 1.5 * fade;
+
+                fade *= 0.999; // slow decay (less flashy, more real)
+
+                // small dark core (event horizon)
+                ctx.fillStyle = "rgba(0,0,0,1)";
+                ctx.beginPath();
+                ctx.arc(bh.x, bh.y, 18, 0, Math.PI * 2);
+                ctx.fill();
+
+                // subtle gravitational lens ring (not colorful)
+                const ring = ctx.createRadialGradient(
+                    bh.x, bh.y, 10,
+                    bh.x, bh.y, 120
+                );
+
+                ring.addColorStop(0, "rgba(0,0,0,0)");
+                ring.addColorStop(0.4, "rgba(180,220,255,0.08)");
+                ring.addColorStop(1, "rgba(0,0,0,0)");
+
+                ctx.fillStyle = ring;
+                ctx.beginPath();
+                ctx.arc(bh.x, bh.y, 120, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // ---------- SIGNATURE ----------
+            ctx.save();
+            ctx.textAlign = "center";
+            ctx.font = "18px Arial";
+            ctx.shadowColor = "white";
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.fillText("D4w1nchi", c.width / 2, c.height - 25);
+            ctx.restore();
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+
+    </script>
+
+</body>
+</html>
